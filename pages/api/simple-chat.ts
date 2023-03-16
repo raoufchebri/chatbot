@@ -7,12 +7,18 @@ export default async function handler(
   const completion = await fetch('https://api.openai.com/v1/chat/completions', {
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY ?? ''}`,
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
     method: 'POST',
     body: JSON.stringify({
       model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: request.body.message }],
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+        },
+        ...request.body.messages,
+      ],
     }),
   });
 
