@@ -1,4 +1,4 @@
-import { createStream } from '../../lib/createStream';
+import { createStream } from '../../../lib/createStream';
 
 export const config = {
   runtime: 'edge',
@@ -10,6 +10,9 @@ export default async (req: Request) => {
     messages?: string[];
   };
 
+  if (!messages) {
+    return new Response('No prompt in the request', { status: 400 });
+  }
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     headers: {
       'Content-Type': 'application/json',
@@ -21,7 +24,8 @@ export default async (req: Request) => {
       messages: [
         {
           role: 'system',
-          content: 'You are a helpful assistant.',
+          content:
+            'Find a suitable title to the conversation between the user and assistant. The title should not exceed 20 characters. Example: Origin of the Universe. \n\nAnswer:',
         },
         ...messages,
       ],
