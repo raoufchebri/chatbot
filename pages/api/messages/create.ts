@@ -12,11 +12,11 @@ export default async function handler(
     },
   });
 
-  const { conversationId, content, role } = request.body;
+  const { content, role } = request.body;
 
   const res = await pool.query(
-    'INSERT INTO message (conversation_id, content, role) VALUES ($1, $2, $3)',
-    [conversationId, content, role]
+    'INSERT INTO message (content, role) VALUES ($1, $2)',
+    [content, role]
   );
 
   pool.end();

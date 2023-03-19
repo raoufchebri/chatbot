@@ -10,7 +10,7 @@ type Message = {
 };
 
 export default function Home() {
-  const options = ['completion'];
+  const options = ['completion', 'with-context'];
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef(null);
@@ -74,6 +74,19 @@ export default function Home() {
         },
       ]);
     }
+
+    // save completion to the database
+    await fetch('api/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content: completion,
+        role: 'assistant',
+      }),
+    });
+
     setLoading(false);
   };
 
