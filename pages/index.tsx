@@ -7,21 +7,14 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 type Message = {
   role: 'user' | 'assistant';
   content: string;
-  sender?: boolean;
 };
 
-type Chat = {};
-
 export default function Home() {
-  const options = ['with-edge'];
+  const options = ['completion'];
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
-  const [conversations, setConversations] = useState([]);
-  const [selectedConversationId, setSelectedConversationId] = useState();
-  const [currentConversationTitle, setCurrentConversationTitle] = useState('');
   const messagesEndRef = useRef(null);
   const [selectedItem, setSelectedItem] = useState(options[0]);
-  const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -30,28 +23,13 @@ export default function Home() {
       {
         role: 'user',
         content: message,
-        sender: true,
       },
     ];
-    if (answer) {
-      // add element to the first position of the array
-      newMessages.unshift({
-        role: 'assistant',
-        content: answer,
-        sender: false,
-      });
-    }
     setMessages([...messages, ...newMessages]);
     setMessage('');
-    setAnswer('');
   };
 
-  const fetchCompletionStream = async (
-    endpoint: string,
-    setState: React.Dispatch<React.SetStateAction<string>>,
-    state: string,
-    isMessage: boolean = false
-  ) => {
+  const fetchCompletionStream = async (endpoint: string) => {
     setLoading(true);
     console.log('fetching completion stream');
     console.log('endpoint', endpoint);
@@ -87,76 +65,17 @@ export default function Home() {
       done = doneReading;
       const chunkValue = decoder.decode(value);
       completion += chunkValue;
-      if (isMessage) {
-        setMessages([
-          ...msg,
-          {
-            conversationId: selectedConversationId,
-            role: 'assistant',
-            content: completion,
-            sender: false,
-          },
-        ]);
-      } else {
-        setState(completion);
-      }
+      setMessages([
+        ...msg,
+        {
+          role: 'assistant',
+          content: completion,
+          sender: false,
+        },
+      ]);
     }
     setLoading(false);
-    return new Promise((resolve) => resolve(completion)) as Promise<string>;
   };
-
-  useEffect(() => {
-    const fetchConversations = async () => {
-      const res = await fetch('api/conversations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      setConversations((await res.json()).data);
-    };
-    fetchConversations();
-  }, []);
-
-  useEffect(() => {
-    if (messages.length === 1 && !selectedConversationId) {
-      // wait for 3sec
-      setTimeout(async () => {
-        const completion = await fetchCompletionStream(
-          'api/conversations/completion',
-          setCurrentConversationTitle,
-          currentConversationTitle
-        );
-        const res = await fetch('api/conversations/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: null,
-            title: completion,
-          }),
-        });
-        const conversationId = await res.json();
-        setConversations([
-          ...conversations,
-          { id: conversationId, title: completion },
-        ]);
-        setSelectedConversationId(conversationId);
-      }, 1000);
-    }
-    if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
-      fetchCompletionStream(`api/${selectedItem}`, setAnswer, answer, true);
-    }
-  }, [messages]);
-
-  useEffect(() => {
-    messagesEndRef.current.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-    return () => {};
-  }, [answer]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -167,22 +86,28 @@ export default function Home() {
     setMessage(e.target.value);
   };
 
+  useEffect(() => {
+    const getMessages = async () => {
+      const res = await fetch('api/messages');
+      const { data } = await res.json();
+      setMessages(data);
+    };
+    getMessages();
+  }, []);
+
+  useEffect(() => {
+    if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
+      fetchCompletionStream(`api/edge/${selectedItem}`);
+    }
+    messagesEndRef.current.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }, [messages]);
+
   return (
     <div className='container mx-auto px-8 sm:px-6 lg:px-20'>
-      <div className='flex h-screen'>
-        <div className='w-1/4 bg-white p-5'>
-          <div className='py-3 px-5 h-full relative'>
-            <Sidebar
-              {...{
-                conversations,
-                setConversations,
-                selectedConversationId,
-                setSelectedConversationId,
-                currentConversationTitle,
-              }}
-            />
-          </div>
-        </div>
+      <div className='flex h-screen justify-center'>
         <div className='w-3/4 bg-gray-100'>
           <div className='flex-1 px-8 py-2 sm:p-6 justify-between flex flex-col h-screen'>
             <div className='flex sm:items-center justify-center pb-3 border-b-2 border-gray-200'>
@@ -206,7 +131,6 @@ export default function Home() {
               {/* {answer !== '' && <Message content={answer} sender={false} />} */}
               <div ref={messagesEndRef}></div>
             </div>
-            {currentConversationTitle}
             <div className='text-sm border-t border-gray-200 px-4 pt-4 mb-2 sm:mb-0'>
               <div className='relative flex'>
                 <input
@@ -242,147 +166,13 @@ export default function Home() {
   );
 }
 
-type Conversation = { id: string; title: string };
-
-// add component propos
-interface SidebarProps {
-  conversations: Conversation[];
-  setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
-  selectedConversationId: string;
-  setSelectedConversationId: React.Dispatch<React.SetStateAction<string>>;
-  currentConversationTitle: string;
-}
-
-function Sidebar({
-  conversations,
-  setConversations,
-  selectedConversationId,
-  setSelectedConversationId,
-  currentConversationTitle,
-}: SidebarProps) {
-  useEffect(() => {}, [currentConversationTitle]);
-
-  const handleNewChat = () => {
-    // if last conversation title is not empty
-    if (
-      conversations.length === 0 ||
-      conversations[conversations.length - 1].title
-    ) {
-      setConversations([
-        ...conversations,
-        { id: `${conversations.length}`, title: '' },
-      ]);
-    }
-  };
-
-  return (
-    <>
-      <h3 className='text-xs font-semibold uppercase text-gray-400 mb-1'>
-        Conversations
-      </h3>
-      <div className='divide-y divide-gray-200 relative h-full'>
-        {conversations.map(
-          ({ id, title }) =>
-            title && (
-              <button
-                key={id}
-                className='w-full text-left py-4 focus:outline-none focus-visible:bg-indigo-50'
-              >
-                <div className='flex items-center'>
-                  <svg
-                    stroke='currentColor'
-                    fill='none'
-                    strokeWidth='2'
-                    viewBox='0 0 24 24'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    className='h-4 w-4 text-gray-400 p-1 mr-3'
-                    height='2em'
-                    width='2em'
-                    xmlns='http://www.w3.org/2000/svg'
-                  >
-                    <path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'></path>
-                  </svg>
-                  <div>
-                    <h4 className='text-sm text-gray-900'>
-                      {title.length > 20
-                        ? title.substring(0, 20) + '...'
-                        : title}
-                    </h4>
-                    {/* <h4 className='text-sm text-gray-900'>{title}</h4> */}
-                  </div>
-                </div>
-              </button>
-            )
-        )}
-        <div className='absolute bottom-0 w-full'>
-          <button
-            onClick={handleNewChat}
-            className='w-full text-left py-3 focus:outline-none focus-visible:bg-indigo-50'
-          >
-            <div className='flex items-center'>
-              <svg
-                stroke='currentColor'
-                fill='none'
-                strokeWidth='2'
-                viewBox='0 0 24 24'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                className='h-4 w-4 mr-3 text-gray-400'
-                height='1em'
-                width='1em'
-                xmlns='http://www.w3.org/2000/svg'
-              >
-                <line x1='12' y1='5' x2='12' y2='19'></line>
-                <line x1='5' y1='12' x2='19' y2='12'></line>
-              </svg>
-              <div>
-                <h4 className='text-sm text-gray-900'>New Chat</h4>
-              </div>
-            </div>
-          </button>
-          <button className='w-full text-left py-3 focus:outline-none focus-visible:bg-indigo-50'>
-            <div className='flex items-center'>
-              <svg
-                stroke='currentColor'
-                fill='none'
-                strokeWidth='2'
-                viewBox='0 0 24 24'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                className='h-4 w-4 mr-3 text-gray-400'
-                height='1em'
-                width='1em'
-                xmlns='http://www.w3.org/2000/svg'
-              >
-                <polyline points='3 6 5 6 21 6'></polyline>
-                <path d='M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'></path>
-                <line x1='10' y1='11' x2='10' y2='17'></line>
-                <line x1='14' y1='11' x2='14' y2='17'></line>
-              </svg>
-
-              <div>
-                <h4 className='text-sm text-gray-900'>Clear Chats</h4>
-              </div>
-            </div>
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-type MessageProps = {
-  content: string;
-  sender?: boolean;
-};
-
-const Message: React.FC<MessageProps> = ({ content, sender = false }) => {
+const Message: React.FC<Message> = ({ content, role }) => {
+  const sender = role === 'user';
   return (
     <div className='chat-message'>
       <div className={`flex items-end ${sender && 'justify-end'}`}>
         <div
-          className={`flex flex-col space-y-2 text-sm max-w-xs mx-2 order-2 items-${
+          className={`flex flex-col space-y-2 text-sm max-w-lg mx-2 order-2 items-${
             sender ? 'end' : 'start'
           }`}
         >
