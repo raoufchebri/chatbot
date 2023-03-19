@@ -131,17 +131,6 @@ export default async (req: Request) => {
     })
   ).json();
 
-  // Insert the response from OpenAI's API to the "message" table
-  const message = data.choices[0].message;
-
-  await pool.query(
-    'INSERT INTO message (content, role, context) VALUES ($1, $2, $3, $4)',
-    [message.content, message.role, null]
-  );
-
-  // Send the response from OpenAI's API to the client
-  pool.end();
-
   const stream = await createStream(data);
 
   new Response(stream, {
