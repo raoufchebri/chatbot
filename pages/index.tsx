@@ -116,7 +116,7 @@ export default function Home() {
       behavior: 'smooth',
       block: 'start',
     });
-  }, [messages]);
+  }, [messages, fetchCompletionStream, selectedItem]);
 
   return (
     <div className='container mx-auto px-8 sm:px-6 lg:px-20'>
