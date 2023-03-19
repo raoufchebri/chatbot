@@ -49,10 +49,6 @@ export default async function handler(
 
   console.log('history', history);
 
-  const historyStr = [history, { content, role }].reduce((acc, cur) => {
-    return acc + cur.content + '\n';
-  }, '');
-
   const qEmbeddingsRes = await fetch('https://api.openai.com/v1/embeddings', {
     headers: {
       'Content-Type': 'application/json',
@@ -91,7 +87,6 @@ export default async function handler(
   }, '');
 
   const systemPrompt = `You are an enthusiastic developer who loves helping other developers with Postgres and Neon questions. Answer the question based on the context below. If the question can't be answered based on the context, say "Sorry :( I don't know."`;
-  const userPrompt = `\n\nContext: ${context}\n\n---\n\nQuestion: ${content}\nAnswer:`;
 
   // Send the history of messages to OpenAI's API to generate a response
   const data = await (
