@@ -199,30 +199,33 @@ const Message: React.FC<Message> = ({ content, role }) => {
             >
               <div>
                 <ReactMarkdown
-                  children={content}
                   components={{
                     code({ node, inline, className, children, ...props }) {
                       const match = /language-(\w+)/.exec(className || '');
                       return !inline && match ? (
                         <SyntaxHighlighter
-                          children={String(children).replace(/\n$/, '')}
                           style={dark}
                           language={match[1]}
                           PreTag='div'
                           {...props}
-                        />
+                        >
+                          {String(children).replace(/\n$/, '')}
+                        </SyntaxHighlighter>
                       ) : (
                         <SyntaxHighlighter
-                          children={children}
                           style={dark}
                           language={'javascript'}
                           PreTag='div'
                           {...props}
-                        />
+                        >
+                          {children}
+                        </SyntaxHighlighter>
                       );
                     },
                   }}
-                />
+                >
+                  {content}
+                </ReactMarkdown>
               </div>
             </span>
           </div>
