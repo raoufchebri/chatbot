@@ -76,16 +76,18 @@ export default function Home() {
     }
 
     // save completion to the database
-    await fetch('api/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        content: completion,
-        role: 'assistant',
-      }),
-    });
+    if (endpoint !== 'api/edge/completion') {
+      await fetch('api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: completion,
+          role: 'assistant',
+        }),
+      });
+    }
 
     setLoading(false);
   };
@@ -141,7 +143,6 @@ export default function Home() {
               {messages.map((message, index) => (
                 <Message key={index} {...message} />
               ))}
-              {/* {answer !== '' && <Message content={answer} sender={false} />} */}
               <div ref={messagesEndRef}></div>
             </div>
             <div className='text-sm border-t border-gray-200 px-4 pt-4 mb-2 sm:mb-0'>
