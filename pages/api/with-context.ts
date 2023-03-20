@@ -21,33 +21,31 @@ export default async function handler(
   const { content, role } = request.body.messages[0];
 
   // Retrieve the history of messages up to the maximum number of tokens allowed
-  const { rows } = await pool.query(
+  const { rows: history } = await pool.query(
     // Use a common table expression (CTE) to calculate the cumulative sum of tokens for each message
     `WITH cte AS (
-      SELECT role, content, context, created, n_tokens, n_context_tokens,
-             SUM(n_tokens + n_context_tokens) OVER (ORDER BY created DESC) AS cumulative_sum
+      SELECT role, content, created, n_tokens,
+             SUM(n_tokens) OVER (ORDER BY created DESC) AS cumulative_sum
       FROM message
     )
-    SELECT role, content, context
+    SELECT role, content
     FROM cte
     WHERE cumulative_sum <= $1
     ORDER BY created`,
     [max_history_tokens]
   );
 
-  // alternate content and context in an array
-  const history = rows.reduce((acc, cur) => {
-    if (cur.role === 'user') {
-      return acc.concat([
-        { content: cur.content, role: cur.role },
-        { content: cur.context, role: cur.role },
-      ]);
-    } else {
-      return acc.concat([{ content: cur.content, role: cur.role }]);
-    }
-  }, []);
-
-  console.log('history', history);
+  // // alternate content and context in an array
+  // const history = rows.reduce((acc, cur) => {
+  //   if (cur.role === 'user') {
+  //     return acc.concat([
+  //       { content: cur.content, role: cur.role },
+  //       { content: cur.context, role: cur.role },
+  //     ]);
+  //   } else {
+  //     return acc.concat([{ content: cur.content, role: cur.role }]);
+  //   }
+  // }, []);
 
   const qEmbeddingsRes = await fetch('https://api.openai.com/v1/embeddings', {
     headers: {
@@ -135,6 +133,5 @@ export default async function handler(
   pool.end();
   response.status(200).json({
     data,
-    history,
   });
 }

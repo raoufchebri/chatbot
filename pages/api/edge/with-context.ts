@@ -34,8 +34,8 @@ export default async (req: Request) => {
   const { rows: history } = await pool.query(
     // Use a common table expression (CTE) to calculate the cumulative sum of tokens for each message
     `WITH cte AS (
-      SELECT role, content, context, created, n_tokens, n_context_tokens,
-             SUM(n_tokens + n_context_tokens) OVER (ORDER BY created DESC) AS cumulative_sum
+      SELECT role, content, created, n_tokens,
+             SUM(n_tokens) OVER (ORDER BY created DESC) AS cumulative_sum
       FROM message
     )
     SELECT role, content
