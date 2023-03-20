@@ -7,7 +7,7 @@ export const config = {
   regions: ['fra1'],
 };
 
-let max_context_tokens = 1500;
+let max_context_tokens = 2000;
 const max_history_tokens = 1500;
 
 export default async (req: NextRequest, ctx: NextFetchEvent) => {
@@ -123,7 +123,10 @@ export default async (req: NextRequest, ctx: NextFetchEvent) => {
       const chunkValue = decoder.decode(value);
       completion += chunkValue;
     }
-    await pool.query(query, [completion, 'assistant']);
+    await pool.query('INSERT INTO message (content, role) VALUES ($1, $2)', [
+      completion,
+      'assistant',
+    ]);
 
     return new Promise((resolve) => {
       resolve(completion);
