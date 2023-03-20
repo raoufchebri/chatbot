@@ -1,11 +1,12 @@
 import { createStream } from '../../../lib/createStream';
+import type { NextFetchEvent, NextRequest } from 'next/server';
 
 export const config = {
   runtime: 'edge',
   regions: ['fra1'],
 };
 
-export default async (req: Request) => {
+export default async (req: NextRequest, context: NextFetchEvent) => {
   const { messages } = (await req.json()) as {
     messages?: string[];
   };
@@ -28,6 +29,7 @@ export default async (req: Request) => {
       stream: true,
     }),
   });
+
   const stream = await createStream(res);
 
   return new Response(stream, {

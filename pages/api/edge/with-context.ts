@@ -1,3 +1,4 @@
+import type { NextFetchEvent, NextRequest } from 'next/server';
 import { createStream } from '../../../lib/createStream';
 import { Pool } from '@neondatabase/serverless';
 
@@ -9,7 +10,7 @@ export const config = {
 let max_context_tokens = 1500;
 const max_history_tokens = 1500;
 
-export default async (req: Request) => {
+export default async (req: NextRequest, ctx: NextFetchEvent) => {
   const { message } = (await req.json()) as {
     message?: { content: string; role: 'user' | 'system' | 'assistant' };
   };
@@ -35,16 +36,16 @@ export default async (req: Request) => {
 
   // Query the database for the context
   const query = `
-  SELECT text
-  FROM (
-    SELECT text, n_tokens, embeddings,
-    (embeddings <=> '[${qEmbeddingsStr}]') AS distances,
-    SUM(n_tokens) OVER (ORDER BY (embeddings <=> '[${qEmbeddingsStr}]')) AS cum_n_tokens
-    FROM documents
-    ) subquery
-  WHERE cum_n_tokens <= $1
-  ORDER BY distances ASC;
-  `;
+    SELECT text
+    FROM (
+      SELECT text, n_tokens, embeddings,
+      (embeddings <=> '[${qEmbeddingsStr}]') AS distances,
+      SUM(n_tokens) OVER (ORDER BY (embeddings <=> '[${qEmbeddingsStr}]')) AS cum_n_tokens
+      FROM documents
+      ) subquery
+      WHERE cum_n_tokens <= $1
+      ORDER BY distances ASC;
+      `;
 
   const queryParams = [max_context_tokens];
   console.log('Querying database...');
@@ -61,6 +62,10 @@ export default async (req: Request) => {
   }, '');
 
   // Get conversation history
+  await pool.query('INSERT INTO message (content, role) VALUES ($1, $2)', [
+    content,
+    'user',
+  ]);
 
   const { rows: history } = await pool.query(
     // Use a common table expression (CTE) to calculate the cumulative sum of tokens for each message
@@ -103,8 +108,34 @@ export default async (req: Request) => {
     }),
   });
   const stream = await createStream(res);
+  const [stream1, stream2] = stream.tee();
 
-  return new Response(stream, {
+  const getStream = async () => {
+    const reader = stream1.getReader();
+    const decoder = new TextDecoder();
+    let done = false;
+
+    let completion = '';
+
+    while (!done) {
+      const { value, done: doneReading } = await reader.read();
+      done = doneReading;
+      const chunkValue = decoder.decode(value);
+      completion += chunkValue;
+    }
+
+    return new Promise((resolve) => {
+      resolve(completion);
+    });
+  };
+
+  ctx.waitUntil(
+    getStream().then(async (completion) => {
+      await pool.query(query, [completion, 'assistant']);
+    })
+  );
+
+  return new Response(stream2, {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
