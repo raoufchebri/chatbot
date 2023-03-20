@@ -9,11 +9,11 @@ export const config = {
 const max_context_tokens = 1500;
 
 export default async (req: Request) => {
-  const { messages } = (await req.json()) as {
-    messages?: { content: string; role: 'user' | 'system' | 'assistant' }[];
+  const { message } = (await req.json()) as {
+    message?: { content: string; role: 'user' | 'system' | 'assistant' };
   };
 
-  const { content } = messages[0];
+  const { content } = message;
 
   const qEmbeddingsRes = await fetch('https://api.openai.com/v1/embeddings', {
     headers: {

@@ -32,15 +32,17 @@ export default function Home() {
   const fetchCompletionStream = async (endpoint: string) => {
     setLoading(true);
     console.log('fetching completion stream');
-    console.log('endpoint', endpoint);
+    let params =
+      endpoint === 'api/edge/completion'
+        ? { messages: messages.map(({ content, role }) => ({ role, content })) }
+        : { message: { role: 'user', content: message } };
+
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        messages: messages.map(({ content, role }) => ({ role, content })),
-      }),
+      body: JSON.stringify(params),
     });
 
     if (!res.ok) {

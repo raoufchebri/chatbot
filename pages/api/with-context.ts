@@ -18,7 +18,7 @@ export default async function handler(
   });
 
   // Insert the first message in the request to the "message" table
-  const { content, role } = request.body.messages[0];
+  const { content, role } = request.body.message;
 
   // Retrieve the history of messages up to the maximum number of tokens allowed
   const { rows: history } = await pool.query(
