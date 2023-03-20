@@ -94,10 +94,10 @@ export default async (req: Request) => {
     return acc + cur.text;
   }, '');
 
-  await pool.query(
-    'INSERT INTO message (content, role, context, created) VALUES ($1, $2, $3, $4)',
-    [content, role, context, new Date()]
-  );
+  // await pool.query(
+  //   'INSERT INTO message (content, role, context, created) VALUES ($1, $2, $3, $4)',
+  //   [content, role, context, new Date()]
+  // );
 
   const systemPrompt = `You are an enthusiastic developer who loves helping other developers with Postgres and Neon questions. Answer the question based on the context below. If the question can't be answered based on the context, say "Sorry :( I don't know."`;
 
@@ -117,7 +117,7 @@ export default async (req: Request) => {
             content: systemPrompt,
           },
           // all history except last
-          ...history,
+          // ...history,
           {
             role: 'user',
             content: `Context: ${context}`,

@@ -76,18 +76,18 @@ export default function Home() {
     }
 
     // save completion to the database
-    if (endpoint !== 'api/edge/completion') {
-      await fetch('api/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: completion,
-          role: 'assistant',
-        }),
-      });
-    }
+    // if (endpoint !== 'api/edge/completion') {
+    //   await fetch('api/messages', {
+    //     method: 'POST',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify({
+    //       content: completion,
+    //       role: 'assistant',
+    //     }),
+    //   });
+    // }
 
     setLoading(false);
   };
