@@ -3,30 +3,15 @@ import ReactMarkdown from 'react-markdown';
 import { oneDark as dark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 
-// getServersideProps is a Next.js function that runs on the server
-// and returns the props that are passed to the component
-export async function getServerSideProps() {
-  // fetch the markdown file from the public folder
-  const res = await fetch('api/messages');
-  const { data } = await res.json();
-
-  // return the props to the component
-  return {
-    props: {
-      messages: data,
-    },
-  };
-}
-
 // create type message
 type Message = {
   role: 'user' | 'assistant';
   content: string;
 };
 
-export default function Home(props) {
+export default function Home() {
   const options = ['completion', 'with-context'];
-  const [messages, setMessages] = useState([props.messages]);
+  const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef(null);
   const [selectedItem, setSelectedItem] = useState(options[0]);
@@ -115,6 +100,15 @@ export default function Home(props) {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setMessage(e.target.value);
   };
+
+  useEffect(() => {
+    const getMessages = async () => {
+      const res = await fetch('api/messages');
+      const { data } = await res.json();
+      setMessages(data);
+    };
+    getMessages();
+  }, []);
 
   useEffect(() => {
     if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
