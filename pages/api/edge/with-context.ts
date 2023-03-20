@@ -1,10 +1,10 @@
 import { Pool } from '@neondatabase/serverless';
-import { createStream, CompletionParams } from '../../../lib/createStream';
+import { createStream } from '../../../lib/createStream';
 import { Request } from 'next/dist/compiled/@edge-runtime/primitives/fetch';
 
 // Maximum number of tokens allowed for a response
-const max_history_tokens = 2800;
-const max_context_tokens = 1000;
+const max_history_tokens = 1500;
+const max_context_tokens = 1500;
 
 export const config = {
   runtime: 'edge',
@@ -31,14 +31,14 @@ export default async (req: Request) => {
   const { content, role } = messages[0];
 
   // Retrieve the history of messages up to the maximum number of tokens allowed
-  const { rows } = await pool.query(
+  const { rows: history } = await pool.query(
     // Use a common table expression (CTE) to calculate the cumulative sum of tokens for each message
     `WITH cte AS (
       SELECT role, content, context, created, n_tokens, n_context_tokens,
              SUM(n_tokens + n_context_tokens) OVER (ORDER BY created DESC) AS cumulative_sum
       FROM message
     )
-    SELECT role, content, context
+    SELECT role, content
     FROM cte
     WHERE cumulative_sum <= $1
     ORDER BY created`,
@@ -46,16 +46,16 @@ export default async (req: Request) => {
   );
 
   // alternate content and context in an array
-  const history = rows.reduce((acc, cur) => {
-    if (cur.role === 'user') {
-      return acc.concat([
-        { content: cur.content, role: cur.role },
-        { content: cur.context, role: cur.role },
-      ]);
-    } else {
-      return acc.concat([{ content: cur.content, role: cur.role }]);
-    }
-  }, []);
+  // const history = rows.reduce((acc, cur) => {
+  //   if (cur.role === 'user') {
+  //     return acc.concat([
+  //       { content: cur.content, role: cur.role },
+  //       { content: cur.context, role: cur.role },
+  //     ]);
+  //   } else {
+  //     return acc.concat([{ content: cur.content, role: cur.role }]);
+  //   }
+  // }, []);
 
   const qEmbeddingsRes = await fetch('https://api.openai.com/v1/embeddings', {
     headers: {
@@ -94,7 +94,7 @@ export default async (req: Request) => {
     return acc + cur.text;
   }, '');
 
-  pool.query(
+  await pool.query(
     'INSERT INTO message (content, role, context, created) VALUES ($1, $2, $3, $4)',
     [content, role, context, new Date()]
   );
