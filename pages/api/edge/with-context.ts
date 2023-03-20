@@ -6,7 +6,8 @@ export const config = {
   regions: ['fra1'],
 };
 
-const max_context_tokens = 1500;
+let max_context_tokens = 1500;
+const max_history_tokens = 1500;
 
 export default async (req: Request) => {
   const { message } = (await req.json()) as {
@@ -59,6 +60,22 @@ export default async (req: Request) => {
     return acc + cur.text;
   }, '');
 
+  // Get conversation history
+
+  const { rows: history } = await pool.query(
+    // Use a common table expression (CTE) to calculate the cumulative sum of tokens for each message
+    `WITH cte AS (
+      SELECT role, content, created, n_tokens,
+             SUM(n_tokens) OVER (ORDER BY created DESC) AS cumulative_sum
+      FROM message
+    )
+    SELECT role, content
+    FROM cte
+    WHERE cumulative_sum <= $1
+    ORDER BY created`,
+    [max_history_tokens]
+  );
+
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     headers: {
       'Content-Type': 'application/json',
@@ -72,6 +89,7 @@ export default async (req: Request) => {
           role: 'system',
           content: 'You are a helpful assistant.',
         },
+        ...history,
         {
           role: 'user',
           content: `Context: ${context}`,
