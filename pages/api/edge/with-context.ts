@@ -123,6 +123,7 @@ export default async (req: NextRequest, ctx: NextFetchEvent) => {
       const chunkValue = decoder.decode(value);
       completion += chunkValue;
     }
+    await pool.query(query, [completion, 'assistant']);
 
     return new Promise((resolve) => {
       resolve(completion);
@@ -130,8 +131,8 @@ export default async (req: NextRequest, ctx: NextFetchEvent) => {
   };
 
   ctx.waitUntil(
-    getStream().then(async (completion) => {
-      await pool.query(query, [completion, 'assistant']);
+    getStream().then(async () => {
+      console.log('Inserting completion into database...');
     })
   );
 
