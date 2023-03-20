@@ -2,8 +2,8 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { Pool } from 'pg';
 
 // Maximum number of tokens allowed for a response
-const max_history_tokens = 2800;
-const max_context_tokens = 1000;
+const max_history_tokens = 1500;
+const max_context_tokens = 1500;
 
 export default async function handler(
   request: NextApiRequest,
