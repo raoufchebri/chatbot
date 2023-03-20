@@ -35,7 +35,16 @@ export default function Home() {
     let params =
       endpoint === 'api/edge/completion'
         ? { messages: messages.map(({ content, role }) => ({ role, content })) }
-        : { message: { role: 'user', content: message } };
+        : {
+            message: {
+              role: 'user',
+              content:
+                // last message
+                messages[messages.length - 1].content,
+            },
+          };
+
+    console.log('params', params);
 
     const res = await fetch(endpoint, {
       method: 'POST',
