@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { oneDark as dark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import Image from 'next/image';
 
 // create type message
 type Message = {
@@ -193,6 +194,7 @@ export default function Home() {
 
 const Message: React.FC<Message> = ({ content, role }) => {
   const sender = role === 'user';
+  const imageSrc = sender ? '/chat.png' : '/openai.png';
   return (
     <div className='chat-message'>
       <div className={`flex items-end ${sender && 'justify-end'}`}>
@@ -242,9 +244,11 @@ const Message: React.FC<Message> = ({ content, role }) => {
             </span>
           </div>
         </div>
-        <img
-          src='https://images.unsplash.com/photo-1590031905470-a1a1feacbb0b?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144'
+        <Image
+          src={imageSrc}
           alt='User'
+          width={24}
+          height={24}
           className={`w-6 h-6 rounded-full order-${sender ? '2' : '1'}`}
         />
       </div>
