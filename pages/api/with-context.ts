@@ -35,18 +35,6 @@ export default async function handler(
     [max_history_tokens]
   );
 
-  // // alternate content and context in an array
-  // const history = rows.reduce((acc, cur) => {
-  //   if (cur.role === 'user') {
-  //     return acc.concat([
-  //       { content: cur.content, role: cur.role },
-  //       { content: cur.context, role: cur.role },
-  //     ]);
-  //   } else {
-  //     return acc.concat([{ content: cur.content, role: cur.role }]);
-  //   }
-  // }, []);
-
   const qEmbeddingsRes = await fetch('https://api.openai.com/v1/embeddings', {
     headers: {
       'Content-Type': 'application/json',

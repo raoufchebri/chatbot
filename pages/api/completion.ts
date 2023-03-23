@@ -9,7 +9,7 @@ export default async function handler(
 ) {
   // Make an asynchronous HTTP request to the OpenAI chat completions API using the "fetch" function
   // and store the result in the "completion" variable
-  const completion = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
     // Set the headers for the HTTP request to include the OpenAI API key and the content type
     headers: {
       'Content-Type': 'application/json',
@@ -30,7 +30,7 @@ export default async function handler(
   });
 
   // Parse the JSON response from the OpenAI chat completions API and store it in the "data" variable
-  const data = await completion.json();
+  const data = await res.json();
 
   // Set the status code of the HTTP response to 200 (OK) and send the JSON response
   response.status(200).json({
